@@ -30,12 +30,16 @@ More of a reference model than an eigen-model, let's begin with a <a target="_bl
 <ul>
 <li>Repulsion: cell-cell repulsion parameter</li>
 <li>Max Cells: max # of cells in the monolayer</li>
-<li>Win Size: Window size (dynamically editable to zoom in)</li>
-<li>Split type: how daughter cells are positioned</li>
+<li>Win Size: Window size (dynamically editable)</li>
+<li>Daughters: how daughter cells are positioned</li>
 <li>Seed: PRNG seed</li>
-<li>(Cells) Color Mode: white boundaries or colored by gamma</li>
+<li>dt_mech: time step for mechanics</li>
+<li>dt_grow: time step for cell growth</li>
+<li>Color: white boundaries, or gamma, or ID</li>
 </ul>
 Each cell has a "gamma" scalar value, [0,1], which is an approximation to its free surface boundary, e.g., 0=no free boundary; neighbor cells totally overlap it; 1=100% free
+<p>
+In addition to pressing Play, you can select/drag the slider.
     </td>
   </tr>
 </table>
