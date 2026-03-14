@@ -18,34 +18,64 @@ p {font-size:100%;}
 <p>
 This site provides an introduction to PhysiCell using eigen-models.
 <p>
-More of a reference model than an eigen-model, let's begin with a <a target="_blank" rel="noopener noreferrer" href="monolayer.html">growing monolayer</a>.
+More of a reference model than an eigen-model, let's begin with a growing monolayer.
 
-<a target="_blank" rel="noopener noreferrer" href="monolayer_v2.html">monolayer version2</a>.
 
-</p>
+<h3>Version 2</h3>
+<a target="_blank" rel="noopener noreferrer" href="monolayer_v2.html">growing monolayer v2</a>.
+
+<p>
+In version 2, we correctly(?) compute cell growth (still unsure of A_0=78.5, since daughter cells take on normal random size for division):
+
+<pre>
+<code>
+    def grow(self,time,dt) -> None:
+        A_0 = 78.5
+        # r = 0.002265  # 5x slower than that from the 11-cell relaxation
+
+        self.area = A_0 + r * self.time_in_cycle
+</code>
+</pre>
+
 <table>
-  <tr>
+<tr>
     <td class="image-text-cell">
-      <img src="images/monolayer.jpg" height="250" alt="200 cell monolayer colored by gamma">
+      <img src="images/monolayer_v2_UI.jpg" height="150">
     </td>
-    <td>
+<td>
 <ul>
 <li>Repulsion: cell-cell repulsion parameter</li>
 <li>Max Cells: max # of cells in the monolayer</li>
 <li>Win Size: Window size (dynamically editable)</li>
 <li>Daughters: how daughter cells are positioned</li>
 <li>Seed: PRNG seed</li>
-<li>dt_mech: time step for mechanics</li>
-<li>dt_grow: time step for cell growth</li>
+<li>dt_mechanics: time step for mechanics</li>
+<li>Grow Rate R: actual cell growth rate, based on 11-cell relaxation (0.011325 is actual rate, not the 5x slower)</li>
+<li>Modulo Frame: only save/plot every modulo computed frame (e.g., 5th, 10th, 20th)</li>
 <li>Color: white boundaries, or gamma, or ID</li>
 </ul>
-Each cell has a "gamma" scalar value, [0,1], which is an approximation to its free surface boundary, e.g., 0=no free boundary; neighbor cells totally overlap it; 1=100% free
-<p>
-In addition to pressing Play, you can select/drag the slider.
-    </td>
-  </tr>
-</table>
 
+</td>
+</tr>
+</table>
+</p>
+
+<!-- -----------------------------------------------------------------  -->
+<h3>Version 1</h3>
+<a target="_blank" rel="noopener noreferrer" href="monolayer.html">growing monolayer</a>.
+
+In version 1, we were incorrectly computing cell growth.
+
+<pre>
+<code>
+    def grow(self,time,dt) -> None:
+        """Increase area by growth rate """
+        # area_prev = self.area
+        self.area += self.growth_rate * dt
+</pre>code>
+</pre>
+
+</p>
 <table>
   <tr>
     <td class="image-text-cell">
