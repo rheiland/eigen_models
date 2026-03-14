@@ -20,7 +20,32 @@ This site provides an introduction to PhysiCell using eigen-models.
 <p>
 More of a reference model than an eigen-model, let's begin with a <a target="_blank" rel="noopener noreferrer" href="monolayer.html">growing monolayer</a>.
 
+<a target="_blank" rel="noopener noreferrer" href="monolayer_v2.html">monolayer version2</a>.
+
 </p>
+<table>
+  <tr>
+    <td class="image-text-cell">
+      <img src="images/monolayer.jpg" height="250" alt="200 cell monolayer colored by gamma">
+    </td>
+    <td>
+<ul>
+<li>Repulsion: cell-cell repulsion parameter</li>
+<li>Max Cells: max # of cells in the monolayer</li>
+<li>Win Size: Window size (dynamically editable)</li>
+<li>Daughters: how daughter cells are positioned</li>
+<li>Seed: PRNG seed</li>
+<li>dt_mech: time step for mechanics</li>
+<li>dt_grow: time step for cell growth</li>
+<li>Color: white boundaries, or gamma, or ID</li>
+</ul>
+Each cell has a "gamma" scalar value, [0,1], which is an approximation to its free surface boundary, e.g., 0=no free boundary; neighbor cells totally overlap it; 1=100% free
+<p>
+In addition to pressing Play, you can select/drag the slider.
+    </td>
+  </tr>
+</table>
+
 <table>
   <tr>
     <td class="image-text-cell">
