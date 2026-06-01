@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cell Sorting — Differential Adhesion</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0a0a10;
+    --panel:     #0f0f18;
+    --border:    #1e1e30;
+    --accent-a:  #e05252;
+    --accent-b:  #5295e0;
+    --text:      #c8c8dd;
+    --muted:     #55556a;
+    --label:     #8888aa;
+    --highlight: #ffffff;
+    --btn-green: #152a1e;
+    --btn-purple:#1e152a;
+  }
+
+  html, body {
+    height: 100%; width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    overflow: hidden;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+    gap: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 12px 20px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--highlight);
+  }
+  header .sub {
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  #step-counter {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: var(--label);
+    letter-spacing: 0.05em;
+  }
+  #step-counter span { color: var(--text); }
+
+  /* ── Canvas ── */
+  #canvas-wrap {
+    position: relative;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    display: block;
+    image-rendering: crisp-edges;
+  }
+
+  /* legend */
+  .legend {
+    position: absolute;
+    top: 14px; right: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.68rem;
+    color: var(--label);
+  }
+  .legend-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Right panel ── */
+  #panel {
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 16px 14px 12px;
+    gap: 0;
+    overflow-y: auto;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    margin-top: 4px;
+  }
+
+  .slider-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 46px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 9px;
+  }
+  .slider-row label {
+    font-size: 0.67rem;
+    color: var(--label);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--accent-b);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 6px rgba(82,149,224,0.5);
+    transition: box-shadow 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 10px rgba(82,149,224,0.8);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--accent-b);
+    border: 2px solid var(--bg);
+  }
+  .slider-val {
+    font-size: 0.67rem;
+    color: var(--text);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 10px 0 14px;
+  }
+
+  /* ── Buttons ── */
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 14px;
+  }
+  button {
+    flex: 1;
+    padding: 9px 4px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    cursor: pointer;
+    color: #fff;
+    letter-spacing: 0.04em;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  #btn-run {
+    background: var(--btn-green);
+    border-color: #1e4a30;
+  }
+  #btn-run:hover { background: #1e4a30; box-shadow: 0 0 8px rgba(46,160,80,0.3); }
+  #btn-run.stopped { background: #2a1e3a; border-color: #4a2a5a; }
+  #btn-run.stopped:hover { background: #3a2a5a; }
+
+  #btn-reset {
+    background: var(--btn-purple);
+    border-color: #3a1e50;
+  }
+  #btn-reset:hover { background: #3a1e50; box-shadow: 0 0 8px rgba(140,60,200,0.3); }
+
+  /* scrollbar */
+  #panel::-webkit-scrollbar { width: 4px; }
+  #panel::-webkit-scrollbar-track { background: transparent; }
+  #panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Cell Sorting</h1>
+    <span class="sub">Differential Adhesion · Center-Based Model</span>
+    <div id="step-counter">step <span id="step-val">0</span></div>
+  </header>
+
+  <div id="canvas-wrap">
+    <canvas id="sim"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#e05252"></div>Type A</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#5295e0"></div>Type B</div>
+    </div>
+  </div>
+
+  <div id="panel">
+    <div class="section-title">Force Magnitudes</div>
+
+    <div class="slider-row">
+      <label>K rep</label>
+      <input type="range" id="sl-k_rep" min="1" max="100" step="0.5" value="40">
+      <div class="slider-val" id="sv-k_rep">40.0</div>
+    </div>
+    <div class="slider-row">
+      <label>K adh A-A</label>
+      <input type="range" id="sl-k_adh_aa" min="0" max="20" step="0.1" value="8">
+      <div class="slider-val" id="sv-k_adh_aa">8.0</div>
+    </div>
+    <div class="slider-row">
+      <label>K adh B-B</label>
+      <input type="range" id="sl-k_adh_bb" min="0" max="20" step="0.1" value="5">
+      <div class="slider-val" id="sv-k_adh_bb">5.0</div>
+    </div>
+    <div class="slider-row">
+      <label>K adh A-B</label>
+      <input type="range" id="sl-k_adh_ab" min="0" max="20" step="0.1" value="1.5">
+      <div class="slider-val" id="sv-k_adh_ab">1.5</div>
+    </div>
+
+    <hr class="divider">
+    <div class="section-title">Dynamics</div>
+
+    <div class="slider-row">
+      <label>Δt</label>
+      <input type="range" id="sl-dt" min="0.001" max="0.1" step="0.001" value="0.02">
+      <div class="slider-val" id="sv-dt">0.020</div>
+    </div>
+    <div class="slider-row">
+      <label>Damping γ</label>
+      <input type="range" id="sl-damping" min="0.5" max="30" step="0.1" value="8">
+      <div class="slider-val" id="sv-damping">8.0</div>
+    </div>
+    <div class="slider-row">
+      <label>Noise</label>
+      <input type="range" id="sl-noise" min="0" max="15" step="0.1" value="4">
+      <div class="slider-val" id="sv-noise">4.0</div>
+    </div>
+
+    <div class="btn-row">
+      <button id="btn-run">⏸ Stop</button>
+      <button id="btn-reset">↺ Reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+const N_CELLS    = 80;
+const FRAC_A     = 0.5;
+const RADIUS     = 1.0;
+const DOMAIN     = 20.0;
+const R_HARD     = 2 * RADIUS;
+const R_ADHESION = 2 * RADIUS + 0.6;
+const ANIM_EVERY = 10;
+
+const DEFAULTS = {
+  k_rep:    40.0,
+  k_adh_aa:  8.0,
+  k_adh_bb:  5.0,
+  k_adh_ab:  1.5,
+  dt:        0.02,
+  damping:   8.0,
+  noise:     4.0,
+};
+
+const COLOR_A = '#e05252';
+const COLOR_B = '#5295e0';
+
+// ── Seeded PRNG (mulberry32) ──────────────────────────────────────────────────
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// Box-Muller normal sample using our rng
+function randNormal(rng) {
+  let u, v;
+  do { u = rng(); } while (u === 0);
+  v = rng();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+// Fisher-Yates shuffle using our rng
+function shuffle(arr, rng) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ── Physics ───────────────────────────────────────────────────────────────────
+function computeForces(posX, posY, types, p) {
+  const N = N_CELLS;
+  const fx = new Float64Array(N);
+  const fy = new Float64Array(N);
+
+  function adh(ti, tj) {
+    if (ti === tj) return ti === 0 ? p.k_adh_aa : p.k_adh_bb;
+    return p.k_adh_ab;
+  }
+
+  for (let i = 0; i < N - 1; i++) {
+    for (let j = i + 1; j < N; j++) {
+      const dx = posX[i] - posX[j];
+      const dy = posY[i] - posY[j];
+      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1e-6);
+      const ux = dx / dist;
+      const uy = dy / dist;
+
+      if (dist < R_HARD) {
+        // repulsion
+        const mag = p.k_rep * (R_HARD - dist);
+        fx[i] += mag * ux;  fy[i] += mag * uy;
+        fx[j] -= mag * ux;  fy[j] -= mag * uy;
+      } else if (dist < R_ADHESION) {
+        // adhesion
+        const mag = adh(types[i], types[j]);
+        fx[i] -= mag * ux;  fy[i] -= mag * uy;
+        fx[j] += mag * ux;  fy[j] += mag * uy;
+      }
+    }
+  }
+  return { fx, fy };
+}
+
+function reflect(posX, posY) {
+  const lo = RADIUS, hi = DOMAIN - RADIUS;
+  for (let i = 0; i < N_CELLS; i++) {
+    if (posX[i] < lo) posX[i] = lo;
+    if (posX[i] > hi) posX[i] = hi;
+    if (posY[i] < lo) posY[i] = lo;
+    if (posY[i] > hi) posY[i] = hi;
+  }
+}
+
+function initialise(seed = 42) {
+  const rng = mulberry32(seed);
+  const n   = Math.ceil(Math.sqrt(N_CELLS));
+  const grid = [];
+  for (let xi = 0; xi < n; xi++) {
+    for (let yi = 0; yi < n; yi++) {
+      grid.push([
+        RADIUS * 2 + (xi / (n - 1)) * (DOMAIN - RADIUS * 4),
+        RADIUS * 2 + (yi / (n - 1)) * (DOMAIN - RADIUS * 4),
+      ]);
+    }
+  }
+  shuffle(grid, rng);
+  const posX  = new Float64Array(N_CELLS);
+  const posY  = new Float64Array(N_CELLS);
+  const types = new Uint8Array(N_CELLS);
+
+  for (let i = 0; i < N_CELLS; i++) {
+    posX[i] = grid[i][0] + (rng() - 0.5) * 0.6;
+    posY[i] = grid[i][1] + (rng() - 0.5) * 0.6;
+  }
+
+  // Assign types: first half of shuffled indices → A (0), rest → B (1)
+  const idx = shuffle([...Array(N_CELLS).keys()], rng);
+  const nA  = Math.round(N_CELLS * FRAC_A);
+  for (let i = 0; i < nA; i++)  types[idx[i]] = 0;
+  for (let i = nA; i < N_CELLS; i++) types[idx[i]] = 1;
+
+  // Relax overlaps
+  const p = DEFAULTS;
+  for (let iter = 0; iter < 60; iter++) {
+    const { fx, fy } = computeForces(posX, posY, types, p);
+    for (let i = 0; i < N_CELLS; i++) {
+      posX[i] += (fx[i] / p.damping) * p.dt;
+      posY[i] += (fy[i] / p.damping) * p.dt;
+    }
+    reflect(posX, posY);
+  }
+  return { posX, posY, types, rng };
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let S = { step: 0, running: true, ...initialise() };
+
+function getParams() {
+  return {
+    k_rep:    +document.getElementById('sl-k_rep').value,
+    k_adh_aa: +document.getElementById('sl-k_adh_aa').value,
+    k_adh_bb: +document.getElementById('sl-k_adh_bb').value,
+    k_adh_ab: +document.getElementById('sl-k_adh_ab').value,
+    dt:       +document.getElementById('sl-dt').value,
+    damping:  +document.getElementById('sl-damping').value,
+    noise:    +document.getElementById('sl-noise').value,
+  };
+}
+
+function simStep() {
+  const p = getParams();
+  const { fx, fy } = computeForces(S.posX, S.posY, S.types, p);
+  const noiseMag = p.noise * p.dt;
+  for (let i = 0; i < N_CELLS; i++) {
+    S.posX[i] += (fx[i] / p.damping) * p.dt + randNormal(S.rng) * noiseMag;
+    S.posY[i] += (fy[i] / p.damping) * p.dt + randNormal(S.rng) * noiseMag;
+  }
+  reflect(S.posX, S.posY);
+}
+
+// ── Canvas & rendering ────────────────────────────────────────────────────────
+const canvas = document.getElementById('sim');
+const ctx    = canvas.getContext('2d');
+let   scale  = 1;  // px per domain unit
+
+function resizeCanvas() {
+  const wrap = document.getElementById('canvas-wrap');
+  const W = wrap.clientWidth;
+  const H = wrap.clientHeight;
+  const size = Math.min(W, H) - 8;
+  canvas.width  = size;
+  canvas.height = size;
+  scale = size / DOMAIN;
+}
+
+function drawFrame() {
+  const S_ = S;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background
+  ctx.fillStyle = '#0a0a10';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Cells
+  for (let i = 0; i < N_CELLS; i++) {
+    const cx = S_.posX[i] * scale;
+    const cy = canvas.height - S_.posY[i] * scale; // flip Y
+    const r  = RADIUS * scale;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+
+    // radial gradient for 3-D feel
+    const grad = ctx.createRadialGradient(
+      cx - r * 0.3, cy - r * 0.3, r * 0.05,
+      cx, cy, r
+    );
+    const base = S_.types[i] === 0 ? '#e05252' : '#5295e0';
+    const lit  = S_.types[i] === 0 ? '#f08080' : '#80b8f0';
+    const dark = S_.types[i] === 0 ? '#902020' : '#204090';
+    grad.addColorStop(0,   lit);
+    grad.addColorStop(0.5, base);
+    grad.addColorStop(1,   dark);
+
+    ctx.fillStyle = grad;
+    ctx.globalAlpha = 0.88;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ── Animation loop ────────────────────────────────────────────────────────────
+const stepEl = document.getElementById('step-val');
+
+function loop() {
+  if (S.running) {
+    for (let i = 0; i < ANIM_EVERY; i++) {
+      simStep();
+      S.step++;
+    }
+  }
+  drawFrame();
+  stepEl.textContent = S.step;
+  requestAnimationFrame(loop);
+}
+
+// ── Slider wiring ─────────────────────────────────────────────────────────────
+const sliderKeys = ['k_rep','k_adh_aa','k_adh_bb','k_adh_ab','dt','damping','noise'];
+const decimals   = { k_rep: 1, k_adh_aa: 1, k_adh_bb: 1, k_adh_ab: 1, dt: 3, damping: 1, noise: 1 };
+
+sliderKeys.forEach(key => {
+  const sl = document.getElementById('sl-' + key);
+  const sv = document.getElementById('sv-' + key);
+  sl.addEventListener('input', () => {
+    sv.textContent = parseFloat(sl.value).toFixed(decimals[key]);
+  });
+});
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+const btnRun   = document.getElementById('btn-run');
+const btnReset = document.getElementById('btn-reset');
+
+btnRun.addEventListener('click', () => {
+  S.running = !S.running;
+  btnRun.textContent = S.running ? '⏸ Stop' : '▶ Start';
+  btnRun.classList.toggle('stopped', !S.running);
+});
+
+btnReset.addEventListener('click', () => {
+  const wasRunning = S.running;
+  S = { step: 0, running: false, ...initialise() };
+
+  // Reset sliders to defaults
+  sliderKeys.forEach(key => {
+    const sl = document.getElementById('sl-' + key);
+    const sv = document.getElementById('sv-' + key);
+    sl.value = DEFAULTS[key];
+    sv.textContent = DEFAULTS[key].toFixed(decimals[key]);
+  });
+
+  S.running = wasRunning;
+  btnRun.textContent = S.running ? '⏸ Stop' : '▶ Start';
+  btnRun.classList.toggle('stopped', !S.running);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => { resizeCanvas(); drawFrame(); });
+resizeCanvas();
+loop();
+</script>
+</body>
+</html>
